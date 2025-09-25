@@ -93,7 +93,7 @@ class IterativePolicyEvaluation(DynamicProgramming):
         new_values = np.zeros_like(self.values, dtype=float)
         for s in range(self.grid_world.get_state_space()):
             new_values[s] = self.get_state_value(s)
-        delta = np.max(np.abs(new_values - self.values), 0)
+        delta = np.max(np.abs(new_values - self.values))
         self.values = new_values
         return delta
 
@@ -126,22 +126,41 @@ class PolicyIteration(DynamicProgramming):
             float
         """
         # TODO: Get the value for a state by calculating the q-values
-        raise NotImplementedError
+        action = self.policy[state]
+        return self.get_q_value(state, action)
 
     def policy_evaluation(self):
         """Evaluate the policy and update the values"""
         # TODO: Implement the policy evaluation step
-        raise NotImplementedError
+        while True:
+            new_values = np.zeros_like(self.values, dtype=float)
+            for s in range(self.grid_world.get_state_space()):
+                new_values[s] = self.get_state_value(s)
+            delta = np.max(np.abs(new_values - self.values))
+            self.values = new_values
+            if delta < self.threshold:
+                break
 
     def policy_improvement(self):
         """Improve the policy based on the evaluated values"""
         # TODO: Implement the policy improvement step
-        raise NotImplementedError
+        stable = True
+        for s in range(self.grid_world.get_state_space()):
+            old_action = self.policy[s]
+            q_values = np.array([self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())])
+            self.policy[s] = int(np.argmax(q_values))
+            if old_action != self.policy[s]:
+                stable = False
+        return stable
 
     def run(self) -> None:
         """Run the algorithm until convergence"""
         # TODO: Implement the policy iteration algorithm until convergence
-        raise NotImplementedError
+        while True:
+            self.policy_evaluation()
+            stable = self.policy_improvement()
+            if stable:
+                break
 
 
 class ValueIteration(DynamicProgramming):
