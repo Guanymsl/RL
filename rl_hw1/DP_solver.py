@@ -1,4 +1,5 @@
 import numpy as np
+import heapq
 
 from gridworld import GridWorld
 
@@ -226,4 +227,73 @@ class AsyncDynamicProgramming(DynamicProgramming):
     def run(self) -> None:
         """Run the algorithm until convergence"""
         # TODO: Implement the async dynamic programming algorithm until convergence
-        raise NotImplementedError
+        INPLACE = 0
+        PRIORITIZED = 1
+        REALTIME = 2
+
+        MODE = PRIORITIZED
+
+        if MODE == INPLACE:
+            while True:
+                delta = 0.0
+                for s in range(self.grid_world.get_state_space()):
+                    v = self.values[s]
+                    self.values[s] = float(np.max(np.array([self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())])))
+                    delta = max(delta, abs(self.values[s] - v))
+                if delta < self.threshold:
+                    break
+            for s in range(self.grid_world.get_state_space()):
+                q_values = [self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())]
+                self.policy[s] = int(np.argmax(q_values))
+
+        elif MODE == PRIORITIZED:
+            predecessors = [set() for _ in range(self.grid_world.get_state_space())]
+            for s in range(self.grid_world.get_state_space()):
+                for a in range(self.grid_world.get_action_space()):
+                    ns, _, _ = self.grid_world.step(s, a)
+                    predecessors[ns].add(s)
+
+            def optimal_backup(s: int) -> float:
+                best = -np.inf
+                for a in range(self.grid_world.get_action_space()):
+                    ns, r, d = self.grid_world.step(s, a)
+                    q = float(r) if d else float(r + self.discount_factor * self.values[ns])
+                    if q > best:
+                        best = q
+                return best
+
+            def residual(s: int) -> float:
+                return abs(optimal_backup(s) - self.values[s])
+
+            pq = []
+            for s in range(self.grid_world.get_state_space()):
+                pr = residual(s)
+                if pr > self.threshold:
+                    heapq.heappush(pq, (-pr, s))
+
+            while pq:
+                top = -pq[0][0]
+                if top < self.threshold:
+                    break
+                _, s = heapq.heappop(pq)
+                old_v = self.values[s]
+                self.values[s] = optimal_backup(s)
+                if self.values[s] == old_v:
+                    continue
+                pr_self = residual(s)
+                if pr_self > self.threshold:
+                    heapq.heappush(pq, (-pr_self, s))
+                for p in predecessors[s]:
+                    pr = residual(p)
+                    if pr > self.threshold:
+                        heapq.heappush(pq, (-pr, p))
+
+            for s in range(self.grid_world.get_state_space()):
+                q_values = [self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())]
+                self.policy[s] = int(np.argmax(q_values))
+
+        elif MODE == REALTIME:
+            pass
+
+        else:
+            pass
