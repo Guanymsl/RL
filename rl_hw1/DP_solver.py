@@ -231,7 +231,7 @@ class AsyncDynamicProgramming(DynamicProgramming):
         PRIORITIZED = 1
         OTHER = 2
 
-        MODE = PRIORITIZED
+        MODE = OTHER
 
         if MODE == INPLACE:
             while True:
