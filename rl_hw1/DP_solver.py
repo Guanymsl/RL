@@ -85,7 +85,7 @@ class IterativePolicyEvaluation(DynamicProgramming):
             float: value
         """
         # TODO: Get the value for a state by calculating the q-values
-        q_values = np.array([self.get_q_value(state, a) for a in range(self.grid_world.get_action_space())])
+        q_values = np.array([self.get_q_value(state, action) for action in range(self.grid_world.get_action_space())])
         return float((self.policy[state] * q_values).sum())
 
     def evaluate(self):
@@ -135,8 +135,8 @@ class PolicyIteration(DynamicProgramming):
         # TODO: Implement the policy evaluation step
         while True:
             new_values = np.zeros_like(self.values, dtype=float)
-            for s in range(self.grid_world.get_state_space()):
-                new_values[s] = self.get_state_value(s)
+            for state in range(self.grid_world.get_state_space()):
+                new_values[state] = self.get_state_value(state)
             delta = np.max(np.abs(new_values - self.values))
             self.values = new_values
             if delta < self.threshold:
@@ -146,11 +146,11 @@ class PolicyIteration(DynamicProgramming):
         """Improve the policy based on the evaluated values"""
         # TODO: Implement the policy improvement step
         stable = True
-        for s in range(self.grid_world.get_state_space()):
-            old_action = self.policy[s]
-            q_values = np.array([self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())])
-            self.policy[s] = int(np.argmax(q_values))
-            if old_action != self.policy[s]:
+        for state in range(self.grid_world.get_state_space()):
+            old_action = self.policy[state]
+            q_values = np.array([self.get_q_value(state, action) for action in range(self.grid_world.get_action_space())])
+            self.policy[state] = int(np.argmax(q_values))
+            if old_action != self.policy[state]:
                 stable = False
         return stable
 
@@ -184,15 +184,15 @@ class ValueIteration(DynamicProgramming):
             float
         """
         # TODO: Get the value for a state by calculating the q-values
-        q_values = np.array([self.get_q_value(state, a) for a in range(self.grid_world.get_action_space())])
+        q_values = np.array([self.get_q_value(state, action) for action in range(self.grid_world.get_action_space())])
         return float(np.max(q_values))
 
     def policy_evaluation(self):
         """Evaluate the policy and update the values"""
         # TODO: Implement the policy evaluation step
         new_values = np.zeros_like(self.values, dtype=float)
-        for s in range(self.grid_world.get_state_space()):
-            new_values[s] = self.get_state_value(s)
+        for state in range(self.grid_world.get_state_space()):
+            new_values[state] = self.get_state_value(state)
         delta = np.max(np.abs(new_values - self.values))
         self.values = new_values
         return delta
@@ -200,9 +200,9 @@ class ValueIteration(DynamicProgramming):
     def policy_improvement(self):
         """Improve the policy based on the evaluated values"""
         # TODO: Implement the policy improvement step
-        for s in range(self.grid_world.get_state_space()):
-            q_values = [self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())]
-            self.policy[s] = int(np.argmax(q_values))
+        for state in range(self.grid_world.get_state_space()):
+            q_values = [self.get_q_value(state, action) for action in range(self.grid_world.get_action_space())]
+            self.policy[state] = int(np.argmax(q_values))
 
     def run(self) -> None:
         """Run the algorithm until convergence"""
@@ -229,71 +229,93 @@ class AsyncDynamicProgramming(DynamicProgramming):
         # TODO: Implement the async dynamic programming algorithm until convergence
         INPLACE = 0
         PRIORITIZED = 1
-        REALTIME = 2
+        OTHER = 2
 
         MODE = PRIORITIZED
 
         if MODE == INPLACE:
             while True:
                 delta = 0.0
-                for s in range(self.grid_world.get_state_space()):
-                    v = self.values[s]
-                    self.values[s] = float(np.max(np.array([self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())])))
-                    delta = max(delta, abs(self.values[s] - v))
+                for state in range(self.grid_world.get_state_space()):
+                    v = self.values[state]
+                    self.values[state] = float(np.max(np.array([self.get_q_value(state, action) for action in range(self.grid_world.get_action_space())])))
+                    delta = max(delta, abs(self.values[state] - v))
                 if delta < self.threshold:
                     break
-            for s in range(self.grid_world.get_state_space()):
-                q_values = [self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())]
-                self.policy[s] = int(np.argmax(q_values))
+            for state in range(self.grid_world.get_state_space()):
+                q_values = [self.get_q_value(state, action) for action in range(self.grid_world.get_action_space())]
+                self.policy[state] = int(np.argmax(q_values))
 
         elif MODE == PRIORITIZED:
             predecessors = [set() for _ in range(self.grid_world.get_state_space())]
-            for s in range(self.grid_world.get_state_space()):
-                for a in range(self.grid_world.get_action_space()):
-                    ns, _, _ = self.grid_world.step(s, a)
-                    predecessors[ns].add(s)
+            for state in range(self.grid_world.get_state_space()):
+                for action in range(self.grid_world.get_action_space()):
+                    next_state, _, _ = self.grid_world.step(state, action)
+                    predecessors[next_state].add(state)
 
-            def optimal_backup(s: int) -> float:
-                best = -np.inf
-                for a in range(self.grid_world.get_action_space()):
-                    ns, r, d = self.grid_world.step(s, a)
-                    q = float(r) if d else float(r + self.discount_factor * self.values[ns])
-                    if q > best:
-                        best = q
-                return best
+            def optimal_backup(state: int) -> float:
+                return float(np.max(np.array([self.get_q_value(state, action) for action in range(self.grid_world.get_action_space())])))
 
-            def residual(s: int) -> float:
-                return abs(optimal_backup(s) - self.values[s])
+            def residual(state: int) -> float:
+                return abs(optimal_backup(state) - self.values[state])
 
             pq = []
-            for s in range(self.grid_world.get_state_space()):
-                pr = residual(s)
+            for state in range(self.grid_world.get_state_space()):
+                pr = residual(state)
                 if pr > self.threshold:
-                    heapq.heappush(pq, (-pr, s))
+                    heapq.heappush(pq, (-pr, state))
 
             while pq:
                 top = -pq[0][0]
                 if top < self.threshold:
                     break
-                _, s = heapq.heappop(pq)
-                old_v = self.values[s]
-                self.values[s] = optimal_backup(s)
-                if self.values[s] == old_v:
+                _, state = heapq.heappop(pq)
+                old_v = self.values[state]
+                self.values[state] = optimal_backup(state)
+                if self.values[state] == old_v:
                     continue
-                pr_self = residual(s)
+                pr_self = residual(state)
                 if pr_self > self.threshold:
-                    heapq.heappush(pq, (-pr_self, s))
-                for p in predecessors[s]:
+                    heapq.heappush(pq, (-pr_self, state))
+                for p in predecessors[state]:
                     pr = residual(p)
                     if pr > self.threshold:
                         heapq.heappush(pq, (-pr, p))
 
-            for s in range(self.grid_world.get_state_space()):
-                q_values = [self.get_q_value(s, a) for a in range(self.grid_world.get_action_space())]
-                self.policy[s] = int(np.argmax(q_values))
-
-        elif MODE == REALTIME:
-            pass
+            for state in range(self.grid_world.get_state_space()):
+                q_values = [self.get_q_value(state, action) for action in range(self.grid_world.get_action_space())]
+                self.policy[state] = int(np.argmax(q_values))
 
         else:
-            pass
+            next_state = np.zeros((self.grid_world.get_state_space(), self.grid_world.get_action_space()), dtype=int)
+            reward     = np.zeros((self.grid_world.get_state_space(), self.grid_world.get_action_space()), dtype=float)
+            done       = np.zeros((self.grid_world.get_state_space(), self.grid_world.get_action_space()), dtype=bool)
+
+            for state in range(self.grid_world.get_state_space()):
+                for action in range(self.grid_world.get_action_space()):
+                    ns, r, d = self.grid_world.step(state, action)
+                    next_state[state, action] = ns
+                    reward[state, action]     = r
+                    done[state, action]       = d
+
+            while True:
+                delta = 0.0
+                for state in range(self.grid_world.get_state_space()):
+                    v = self.values[state]
+                    q_values = [
+                        reward[state, action] if done[state, action]
+                        else reward[state, action] + self.discount_factor * self.values[next_state[state, action]]
+                        for action in range(self.grid_world.get_action_space())
+                    ]
+                    self.values[state] = float(np.max(np.array(q_values)))
+                    delta = max(delta, abs(self.values[state] - v))
+                if delta < self.threshold:
+                    break
+
+            for state in range(self.grid_world.get_state_space()):
+                q_values = [
+                    reward[state, action] if done[state, action]
+                    else reward[state, action] + self.discount_factor * self.values[next_state[state, action]]
+                    for action in range(self.grid_world.get_action_space())
+                ]
+                self.policy[state] = int(np.argmax(q_values))
