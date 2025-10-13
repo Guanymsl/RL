@@ -71,12 +71,9 @@ class MonteCarloPrediction(ModelFreePrediction):
         """Run the algorithm until max_episode"""
         # TODO: Update self.values with first-visit Monte-Carlo method
         current_state = self.grid_world.reset()
-
         N = np.zeros(self.state_space)
-
         while self.episode_counter < self.max_episode:
             pi = []
-
             done = False
             while not done:
                 next_state, reward, done = self.collect_data()
@@ -85,7 +82,6 @@ class MonteCarloPrediction(ModelFreePrediction):
 
             G = 0
             returns = np.zeros(self.state_space)
-
             for t in reversed(range(len(pi))):
                 s, r = pi[t]
                 G = self.discount_factor * G + r
@@ -119,9 +115,11 @@ class TDPrediction(ModelFreePrediction):
         # TODO: Update self.values with TD(0) Algorithm
         current_state = self.grid_world.reset()
         while self.episode_counter < self.max_episode:
-            next_state, reward, done = self.collect_data()
-            continue
-
+            done = False
+            while not done:
+                next_state, reward, done = self.collect_data()
+                self.values[current_state] += self.lr * (reward + (0 if done else self.discount_factor * self.values[next_state]) - self.values[current_state])
+                current_state = next_state
 
 class NstepTDPrediction(ModelFreePrediction):
     def __init__(
