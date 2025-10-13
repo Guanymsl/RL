@@ -9,7 +9,7 @@ class ModelFreePrediction:
     """
     Base class for ModelFreePrediction algorithms
     """
-       
+
 
     def __init__(self, grid_world: GridWorld, policy: np.ndarray = None, discount_factor: float = 1.0, max_episode: int = 300, seed: int = 1):
         """
@@ -23,7 +23,7 @@ class ModelFreePrediction:
         self.grid_world = grid_world
         self.discount_factor = discount_factor
         self.max_episode = max_episode
-        self.episode_counter = 0  
+        self.episode_counter = 0
         self.action_space = grid_world.get_action_space()
         self.state_space  = grid_world.get_state_space()
         self.values       = np.zeros(self.state_space)
@@ -43,38 +43,52 @@ class ModelFreePrediction:
         """
 
         current_state = self.grid_world.get_current_state()  # Get the current state
-        
-        # Sample an action based on the stochastic policy's probabilities for the current state
-        action_probs = self.policy[current_state]  
-        action = self.rng.choice(self.action_space, p=action_probs)  
 
-        next_state, reward, done = self.grid_world.step(action)  
+        # Sample an action based on the stochastic policy's probabilities for the current state
+        action_probs = self.policy[current_state]
+        action = self.rng.choice(self.action_space, p=action_probs)
+
+        next_state, reward, done = self.grid_world.step(action)
         if done:
             self.episode_counter +=1
         return next_state, reward, done
-        
+
 
 class MonteCarloPrediction(ModelFreePrediction):
     def __init__(self, grid_world: GridWorld, policy: np.ndarray = None, discount_factor: float = 1.0, max_episode: int = 300, seed: int = 1):
         """
         Constructor for MonteCarloPrediction
-        
+
         Args:
             grid_world (GridWorld): GridWorld object
             policy (np.ndarray): Stochastic policy representing action probabilities [state_space, action_space]
             discount_factor (float, optional): Discount factor gamma. Defaults to 1.0.
             max_episode (int, optional): Maximum episode for data collection. Defaults to 10000.
         """
-        super().__init__(grid_world,policy, discount_factor, max_episode, seed)
+        super().__init__(grid_world, policy, discount_factor, max_episode, seed)
 
     def run(self) -> None:
         """Run the algorithm until max_episode"""
         # TODO: Update self.values with first-visit Monte-Carlo method
         current_state = self.grid_world.reset()
-        while self.episode_counter < self.max_episode:
-            next_state, reward, done = self.collect_data()
-            continue
+        N = np.zeros(self.state_space)
 
+        while self.episode_counter < self.max_episode:
+            pi = []
+
+            while True:
+                next_state, reward, done = self.collect_data()
+                pi.append((current_state, reward))
+                current_state = next_state
+                if done:
+                    break
+
+            G = 0
+            for t in reversed(range(len(pi))):
+                s, r = pi[t]
+                G = self.discount_factor * G + r
+                N[s] += 1
+                self.values[s] += (G - self.values[s]) / N[s]
 
 class TDPrediction(ModelFreePrediction):
     def __init__(
@@ -128,7 +142,7 @@ class NstepTDPrediction(ModelFreePrediction):
 # =========================== 2.2 model free control ===========================
 class ModelFreeControl:
     """
-    Base class for model free control algorithms 
+    Base class for model free control algorithms
     """
 
     def __init__(self, grid_world: GridWorld, discount_factor: float = 1.0):
@@ -141,7 +155,7 @@ class ModelFreeControl:
         self.discount_factor = discount_factor
         self.action_space = grid_world.get_action_space()
         self.state_space  = grid_world.get_state_space()
-        self.q_values     = np.zeros((self.state_space, self.action_space))  
+        self.q_values     = np.zeros((self.state_space, self.action_space))
         self.policy       = np.ones((self.state_space, self.action_space)) / self.action_space # stocastic policy
         self.policy_index = np.zeros(self.state_space, dtype=int)                              # deterministic policy
 
@@ -154,7 +168,7 @@ class ModelFreeControl:
         for s_i in range(self.state_space):
             self.policy_index[s_i] = self.q_values[s_i].argmax()
         return self.policy_index
-    
+
     def get_max_state_values(self) -> np.ndarray:
         max_values = np.zeros(self.state_space)
         for i in range(self.state_space):
@@ -181,9 +195,9 @@ class MonteCarloPolicyIteration(ModelFreeControl):
     def policy_evaluation(self, state_trace, action_trace, reward_trace) -> None:
         """Evaluate the policy and update the values after one episode"""
         # TODO: Evaluate state value for each Q(s,a)
-        
+
         raise NotImplementedError
-        
+
 
     def policy_improvement(self) -> None:
         """Improve policy based on Q(s,a) after one episode"""
@@ -203,7 +217,7 @@ class MonteCarloPolicyIteration(ModelFreeControl):
         while iter_episode < max_episode:
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
-            
+
             raise NotImplementedError
 
 
@@ -225,7 +239,7 @@ class SARSA(ModelFreeControl):
     def policy_eval_improve(self, s, a, r, s2, a2, is_done) -> None:
         """Evaluate the policy and update the values after one step"""
         # TODO: Evaluate Q value after one step and improve the policy
-        
+
         raise NotImplementedError
 
     def run(self, max_episode=1000) -> None:
@@ -240,7 +254,7 @@ class SARSA(ModelFreeControl):
         while iter_episode < max_episode:
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
-            
+
             raise NotImplementedError
 
 class Q_Learning(ModelFreeControl):
@@ -289,4 +303,3 @@ class Q_Learning(ModelFreeControl):
             # hint: self.grid_world.reset() is NOT needed here
 
             raise NotImplementedError
-            
