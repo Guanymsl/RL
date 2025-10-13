@@ -132,7 +132,7 @@ def run_NstepTD_prediction(grid_world: GridWorld,seed):
 def run_MC_policy_iteration(grid_world: GridWorld, iter_num: int):
     print(bold(underline("MC Policy Iteration")))
     policy_iteration = MonteCarloPolicyIteration(
-            grid_world, 
+            grid_world,
             discount_factor=DISCOUNT_FACTOR,
             learning_rate=LEARNING_RATE,
             epsilon= EPSILON,
@@ -183,7 +183,7 @@ def run_SARSA(grid_world: GridWorld, iter_num: int):
 def run_Q_Learning(grid_world: GridWorld, iter_num: int):
     print(bold(underline("Q_Learning Policy Iteration")))
     policy_iteration = Q_Learning(
-            grid_world, 
+            grid_world,
             discount_factor=DISCOUNT_FACTOR,
             learning_rate=LEARNING_RATE,
             epsilon= EPSILON,
@@ -212,9 +212,9 @@ if __name__ == "__main__":
     seed = 1
     grid_world = init_grid_world("maze.txt",INIT_POS)
     # 2-1
-    run_MC_prediction(grid_world,seed)
-    run_TD_prediction(grid_world,seed)
-    run_NstepTD_prediction(grid_world,seed)
+    run_MC_prediction(grid_world, seed)
+    run_TD_prediction(grid_world, seed)
+    run_NstepTD_prediction(grid_world, seed)
 
     # 2-2
     grid_world = init_grid_world("maze.txt")

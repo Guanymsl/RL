@@ -10,7 +10,6 @@ class ModelFreePrediction:
     Base class for ModelFreePrediction algorithms
     """
 
-
     def __init__(self, grid_world: GridWorld, policy: np.ndarray = None, discount_factor: float = 1.0, max_episode: int = 300, seed: int = 1):
         """
         Args:
@@ -70,6 +69,7 @@ class MonteCarloPrediction(ModelFreePrediction):
     def run(self) -> None:
         """Run the algorithm until max_episode"""
         # TODO: Update self.values with first-visit Monte-Carlo method
+
         current_state = self.grid_world.reset()
         N = np.zeros(self.state_space)
         while self.episode_counter < self.max_episode:
@@ -113,6 +113,7 @@ class TDPrediction(ModelFreePrediction):
     def run(self) -> None:
         """Run the algorithm until max episode"""
         # TODO: Update self.values with TD(0) Algorithm
+
         current_state = self.grid_world.reset()
         while self.episode_counter < self.max_episode:
             done = False
@@ -141,6 +142,7 @@ class NstepTDPrediction(ModelFreePrediction):
     def run(self) -> None:
         """Run the algorithm until max_episode"""
         # TODO: Update self.values with N-step TD Algorithm
+
         current_state = self.grid_world.reset()
         while self.episode_counter < self.max_episode:
             t = 0
@@ -205,7 +207,6 @@ class ModelFreeControl:
         return max_values
 
 
-
 class MonteCarloPolicyIteration(ModelFreeControl):
     def __init__(
             self, grid_world: GridWorld, discount_factor: float, learning_rate: float, epsilon: float):
@@ -225,20 +226,29 @@ class MonteCarloPolicyIteration(ModelFreeControl):
         """Evaluate the policy and update the values after one episode"""
         # TODO: Evaluate state value for each Q(s,a)
 
-        raise NotImplementedError
-
+        G = 0
+        for t in reversed(range(len(state_trace) - 1)):
+            s, a, r = state_trace[t], action_trace[t], reward_trace[t]
+            G = self.discount_factor * G + r
+            self.q_values[s, a] += self.lr * (G - self.q_values[s, a])
 
     def policy_improvement(self) -> None:
         """Improve policy based on Q(s,a) after one episode"""
         # TODO: Improve the policy
 
-        raise NotImplementedError
-
+        a_stars = self.get_policy_index()
+        for s in range(self.state_space):
+            for a in range(self.action_space):
+                if a == a_stars[s]:
+                    self.policy[s, a] = 1 - self.epsilon + self.epsilon / self.action_space
+                else:
+                    self.policy[s, a] = self.epsilon / self.action_space
 
     def run(self, max_episode=1000) -> None:
         """Run the algorithm until convergence."""
         # TODO: Implement the Monte Carlo policy evaluation with epsilon-greedy
-        iter_episode = 0
+
+        iter_episode  = 0
         current_state = self.grid_world.reset()
         state_trace   = [current_state]
         action_trace  = []
@@ -247,7 +257,21 @@ class MonteCarloPolicyIteration(ModelFreeControl):
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
 
-            raise NotImplementedError
+            done = False
+            while not done:
+                action = np.random.default_rng(1).choice(self.action_space, p=self.policy[current_state])
+                next_state, reward, done = self.grid_world.step(action)
+                action_trace.append(action)
+                reward_trace.append(reward)
+                state_trace.append(next_state)
+                current_state = next_state
+
+            self.policy_evaluation(state_trace, action_trace, reward_trace)
+            self.policy_improvement()
+            iter_episode += 1
+            state_trace  = [current_state]
+            action_trace = []
+            reward_trace = []
 
 
 class SARSA(ModelFreeControl):
