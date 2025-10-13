@@ -253,17 +253,18 @@ class MonteCarloPolicyIteration(ModelFreeControl):
         state_trace   = [current_state]
         action_trace  = []
         reward_trace  = []
+        rng = np.random.default_rng(1)
         while iter_episode < max_episode:
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
 
             done = False
             while not done:
-                action = np.random.default_rng(1).choice(self.action_space, p=self.policy[current_state])
+                action = rng.choice(self.action_space, p=self.policy[current_state])
                 next_state, reward, done = self.grid_world.step(action)
+                state_trace.append(next_state)
                 action_trace.append(action)
                 reward_trace.append(reward)
-                state_trace.append(next_state)
                 current_state = next_state
 
             self.policy_evaluation(state_trace, action_trace, reward_trace)

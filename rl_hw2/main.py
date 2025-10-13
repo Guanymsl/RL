@@ -157,7 +157,7 @@ def run_MC_policy_iteration(grid_world: GridWorld, iter_num: int):
 def run_SARSA(grid_world: GridWorld, iter_num: int):
     print(bold(underline("SARSA Policy Iteration")))
     policy_iteration = SARSA(
-            grid_world, 
+            grid_world,
             discount_factor=DISCOUNT_FACTOR,
             learning_rate=LEARNING_RATE,
             epsilon= EPSILON,
