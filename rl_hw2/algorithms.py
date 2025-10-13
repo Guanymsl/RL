@@ -147,8 +147,7 @@ class NstepTDPrediction(ModelFreePrediction):
             S = [current_state]
             R = [0]
             T = float('inf')
-            done = False
-            while not done:
+            while True:
                 if t < T:
                     next_state, reward, done = self.collect_data()
                     S.append(next_state)
