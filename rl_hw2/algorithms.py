@@ -294,22 +294,35 @@ class SARSA(ModelFreeControl):
         """Evaluate the policy and update the values after one step"""
         # TODO: Evaluate Q value after one step and improve the policy
 
-        raise NotImplementedError
+        self.q_values[s, a] += self.lr * (r + (0 if is_done else self.discount_factor * self.q_values[s2, a2]) - self.q_values[s, a])
+
+        a_star = np.argmax(self.q_values[s])
+        for action in range(self.action_space):
+            if action == a_star:
+                self.policy[s, action] = 1 - self.epsilon + self.epsilon / self.action_space
+            else:
+                self.policy[s, action] = self.epsilon / self.action_space
 
     def run(self, max_episode=1000) -> None:
         """Run the algorithm until convergence."""
         # TODO: Implement the TD policy evaluation with epsilon-greedy
         iter_episode = 0
         current_state = self.grid_world.reset()
-        prev_s = None
-        prev_a = None
-        prev_r = None
-        is_done = False
+        rng = np.random.default_rng(1)
+        prev_s = current_state
         while iter_episode < max_episode:
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
 
-            raise NotImplementedError
+            prev_a = rng.choice(self.action_space, p=self.policy[prev_s])
+            is_done = False
+            while not is_done:
+                s, prev_r, is_done = self.grid_world.step(prev_a)
+                a = rng.choice(self.action_space, p=self.policy[s]) if not is_done else None
+                self.policy_eval_improve(prev_s, prev_a, prev_r, s, a, is_done)
+                prev_s, prev_a = s, a
+
+            iter_episode += 1
 
 class Q_Learning(ModelFreeControl):
     def __init__(
@@ -331,29 +344,51 @@ class Q_Learning(ModelFreeControl):
 
     def add_buffer(self, s, a, r, s2, d) -> None:
         # TODO: add new transition to buffer
-        raise NotImplementedError
+
+        self.buffer.append((s, a, r, s2, d))
 
     def sample_batch(self) -> np.ndarray:
         # TODO: sample a batch of index of transitions from the buffer
-        raise NotImplementedError
+
+        return [self.buffer[i] for i in np.random.choice(len(self.buffer), size=min(self.sample_batch_size, len(self.buffer)), replace=False)]
 
     def policy_eval_improve(self, s, a, r, s2, is_done) -> None:
         """Evaluate the policy and update the values after one step"""
         #TODO: Evaluate Q value after one step and improve the policy
-        raise NotImplementedError
+
+        self.q_values[s, a] += self.lr * (r + (0 if is_done else self.discount_factor * np.max(self.q_values[s2])) - self.q_values[s, a])
+
+        a_star = np.argmax(self.q_values[s])
+        for action in range(self.action_space):
+            if action == a_star:
+                self.policy[s, action] = 1 - self.epsilon + self.epsilon / self.action_space
+            else:
+                self.policy[s, action] = self.epsilon / self.action_space
 
     def run(self, max_episode=1000) -> None:
         """Run the algorithm until convergence."""
         # TODO: Implement the Q_Learning algorithm
         iter_episode = 0
         current_state = self.grid_world.reset()
-        prev_s = None
-        prev_a = None
-        prev_r = None
-        is_done = False
+        rng = np.random.default_rng(1)
+        prev_s = current_state
         transition_count = 0
         while iter_episode < max_episode:
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
 
-            raise NotImplementedError
+            is_done = False
+            while not is_done:
+                prev_a = rng.choice(self.action_space, p=self.policy[prev_s])
+                s, prev_r, is_done = self.grid_world.step(prev_a)
+                self.add_buffer(prev_s, prev_a, prev_r, s, is_done)
+                transition_count += 1
+
+                if transition_count % self.update_frequency == 0 and len(self.buffer) > 0:
+                    batch = self.sample_batch()
+                    for (bs, ba, br, bs2, bd) in batch:
+                        self.policy_eval_improve(bs, ba, br, bs2, bd)
+
+                prev_s = s
+
+            iter_episode += 1
