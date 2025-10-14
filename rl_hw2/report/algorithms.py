@@ -6,6 +6,8 @@ from gridworld import GridWorld
 
 from tqdm import tqdm
 
+SEED = 2
+
 # =========================== 2.1 model free prediction ===========================
 class ModelFreePrediction:
     """
@@ -229,19 +231,21 @@ class MonteCarloPolicyIteration(ModelFreeControl):
     def policy_evaluation(self, state_trace, action_trace, reward_trace) -> float:
         """Evaluate the policy and update the values after one episode"""
         # TODO: Evaluate state value for each Q(s,a)
+        l = []
 
         G = 0
         for t in reversed(range(len(state_trace) - 1)):
             s, a, r = state_trace[t], action_trace[t], reward_trace[t]
             G = self.discount_factor * G + r
-            self.q_values[s, a] += self.lr * (G - self.q_values[s, a])
+            loss = G - self.q_values[s, a]
+            l.append(abs(loss))
+            self.q_values[s, a] += self.lr * loss
 
-        return abs(G - self.q_values[s, a])
+        return np.mean(l)
 
     def policy_improvement(self) -> None:
         """Improve policy based on Q(s,a) after one episode"""
         # TODO: Improve the policy
-
         a_stars = self.get_policy_index()
         for s in range(self.state_space):
             for a in range(self.action_space):
@@ -253,7 +257,6 @@ class MonteCarloPolicyIteration(ModelFreeControl):
     def run(self, max_episode=1000) -> tuple:
         """Run the algorithm until convergence."""
         # TODO: Implement the Monte Carlo policy evaluation with epsilon-greedy
-
         learn = np.zeros(max_episode)
         el    = np.zeros(max_episode)
 
@@ -261,11 +264,10 @@ class MonteCarloPolicyIteration(ModelFreeControl):
         state_trace   = [current_state]
         action_trace  = []
         reward_trace  = []
-        rng = np.random.default_rng(1)
+        rng = np.random.default_rng(SEED)
         for iter_episode in tqdm(range(max_episode)):
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
-
             done = False
             while not done:
                 action = rng.choice(self.action_space, p=self.policy[current_state])
@@ -277,7 +279,8 @@ class MonteCarloPolicyIteration(ModelFreeControl):
 
             el[iter_episode] = self.policy_evaluation(state_trace, action_trace, reward_trace)
             self.policy_improvement()
-            learn[iter_episode] = np.mean(reward_trace)
+            learn[iter_episode] = np.sum(reward_trace)
+
             state_trace  = [current_state]
             action_trace = []
             reward_trace = []
@@ -303,8 +306,8 @@ class SARSA(ModelFreeControl):
     def policy_eval_improve(self, s, a, r, s2, a2, is_done) -> float:
         """Evaluate the policy and update the values after one step"""
         # TODO: Evaluate Q value after one step and improve the policy
-
-        self.q_values[s, a] += self.lr * (r + (0 if is_done else self.discount_factor * self.q_values[s2, a2]) - self.q_values[s, a])
+        loss = r + (0 if is_done else self.discount_factor * self.q_values[s2, a2]) - self.q_values[s, a]
+        self.q_values[s, a] += self.lr * loss
 
         a_star = np.argmax(self.q_values[s])
         for action in range(self.action_space):
@@ -313,22 +316,21 @@ class SARSA(ModelFreeControl):
             else:
                 self.policy[s, action] = self.epsilon / self.action_space
 
-        return abs(r + (0 if is_done else self.discount_factor * self.q_values[s2, a2]) - self.q_values[s, a])
+        return abs(loss)
 
     def run(self, max_episode=1000) -> np.array:
         """Run the algorithm until convergence."""
         # TODO: Implement the TD policy evaluation with epsilon-greedy
-
         learn = np.zeros(max_episode)
         el    = np.zeros(max_episode)
 
         current_state = self.grid_world.reset()
-        rng = np.random.default_rng(1)
+        rng = np.random.default_rng(SEED)
         prev_s = current_state
+
         for iter_episode in tqdm(range(max_episode)):
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
-
             rs = []
             els = []
 
@@ -341,7 +343,7 @@ class SARSA(ModelFreeControl):
                 els.append(self.policy_eval_improve(prev_s, prev_a, prev_r, s, a, is_done))
                 prev_s, prev_a = s, a
 
-            learn[iter_episode] = np.mean(rs)
+            learn[iter_episode] = np.sum(rs)
             el[iter_episode]    = np.mean(els)
 
         return learn, el
@@ -366,19 +368,17 @@ class Q_Learning(ModelFreeControl):
 
     def add_buffer(self, s, a, r, s2, d) -> None:
         # TODO: add new transition to buffer
-
         self.buffer.append((s, a, r, s2, d))
 
     def sample_batch(self) -> np.ndarray:
         # TODO: sample a batch of index of transitions from the buffer
-
         return [self.buffer[i] for i in np.random.choice(len(self.buffer), size=min(self.sample_batch_size, len(self.buffer)), replace=False)]
 
     def policy_eval_improve(self, s, a, r, s2, is_done) -> float:
         """Evaluate the policy and update the values after one step"""
         #TODO: Evaluate Q value after one step and improve the policy
-
-        self.q_values[s, a] += self.lr * (r + (0 if is_done else self.discount_factor * np.max(self.q_values[s2])) - self.q_values[s, a])
+        loss = r + (0 if is_done else self.discount_factor * np.max(self.q_values[s2])) - self.q_values[s, a]
+        self.q_values[s, a] += self.lr * loss
 
         a_star = np.argmax(self.q_values[s])
         for action in range(self.action_space):
@@ -387,24 +387,22 @@ class Q_Learning(ModelFreeControl):
             else:
                 self.policy[s, action] = self.epsilon / self.action_space
 
-        return abs(r + (0 if is_done else self.discount_factor * np.max(self.q_values[s2])) - self.q_values[s, a])
+        return abs(loss)
 
     def run(self, max_episode=1000) -> tuple:
         """Run the algorithm until convergence."""
         # TODO: Implement the Q_Learning algorithm
-
         learn = np.zeros(max_episode)
         el    = np.zeros(max_episode)
 
         iter_episode = 0
         current_state = self.grid_world.reset()
-        rng = np.random.default_rng(1)
+        rng = np.random.default_rng(SEED)
         prev_s = current_state
         transition_count = 0
         for iter_episode in tqdm(range(max_episode)):
             # TODO: write your code here
             # hint: self.grid_world.reset() is NOT needed here
-
             rs = []
             els = []
 
@@ -423,7 +421,7 @@ class Q_Learning(ModelFreeControl):
 
                 prev_s = s
 
-            learn[iter_episode] = np.mean(rs)
-            el[iter_episode]    = np.mean(els) if len(els) > 0 else min(el)
+            learn[iter_episode] = np.sum(rs)
+            el[iter_episode]    = np.mean(els) if len(els) > 0 else (el[iter_episode-1] if iter_episode > 0 else 0)
 
         return learn, el

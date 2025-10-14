@@ -1,6 +1,4 @@
-import random
 import numpy as np
-import json
 
 from algorithms import (
     MonteCarloPrediction,
@@ -13,7 +11,6 @@ from algorithms import (
 from gridworld import GridWorld
 
 from tqdm import tqdm
-
 import os
 
 np.set_printoptions(threshold=np.inf, linewidth=np.inf)
@@ -218,8 +215,8 @@ def run_Q_Learning(grid_world: GridWorld, iter_num: int):
 if __name__ == "__main__":
     seed = 1
     grid_world = init_grid_world("maze.txt",INIT_POS)
-
     iter = 50
+
     MC_values = np.zeros((grid_world.get_state_space(), iter))
     TD_values = np.zeros((grid_world.get_state_space(), iter))
 
@@ -240,7 +237,7 @@ if __name__ == "__main__":
     Var_TD  = np.mean((TD_values - V_avg_TD[:, None]) ** 2, axis=1)
 
     grid_world = init_grid_world("maze.txt")
-    iter = 100
+    iter = 50000
 
     MC_learn    = np.zeros((4, iter))
     SARSA_learn = np.zeros((4, iter))
@@ -252,7 +249,6 @@ if __name__ == "__main__":
 
     for i in range(1, 5):
         EPSILON = round(0.1 * i, 1)
-        print(EPSILON)
         print(f"================ Experiment {i}: EPSILON = {EPSILON:.1} ================")
         MC_learn[i - 1]   , MC_el[i - 1]    = run_MC_policy_iteration(grid_world, iter)
         SARSA_learn[i - 1], SARSA_el[i - 1] = run_SARSA(grid_world, iter)

@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import wandb
 import os
 
@@ -7,7 +8,7 @@ os.environ['WANDB_API_KEY'] = '4459c56f2331259c595f33fc6b3e1191f07ad335'
 wandb.login(key=os.environ['WANDB_API_KEY'])
 wandb.init(
     project="rl_hw2",
-    name="report"
+    name="rl"
 )
 
 def last10_avg(arr):
@@ -24,34 +25,44 @@ def plotwandb(
     MC_Bias, MC_Var, TD0_Bias, TD0_Var,
     MC_learn, MC_el, SARSA_learn, SARSA_el, Q_learn, Q_el
 ):
-    x = np.arange(len(MC_Bias))
+    states = np.arange(len(MC_Bias))
+    width = 0.35
 
-    for i in range(len(x)):
-        wandb.log({
-            "Bias/MC": MC_Bias[i],
-            "Bias/TD(0)": TD0_Bias[i],
-            "Variance/MC": MC_Var[i],
-            "Variance/TD(0)": TD0_Var[i],
-            "State": i,
-        })
+    _, ax = plt.subplots(figsize=(6, 4))
+    ax.bar(states - width/2, MC_Bias, width, label='MC', alpha=0.8, color='orange')
+    ax.bar(states + width/2, TD0_Bias, width, label='TD(0)', alpha=0.8, color='green')
 
-    def log_eps_curves(prefix, learn_list, el_list):
+    ax.set_xlabel('State')
+    ax.set_title('Bias')
+    ax.legend(loc='upper left')
+    plt.tight_layout()
+
+    _, ay = plt.subplots(figsize=(6, 4))
+    ay.bar(states - width/2, MC_Var, width, label='MC', alpha=0.8, color='orange')
+    ay.bar(states + width/2, TD0_Var, width, label='TD(0)', alpha=0.8, color='green')
+
+    ay.set_xlabel('State')
+    ay.set_title('Variance')
+    ay.legend(loc='upper left')
+    plt.tight_layout()
+
+    plt.show()
+
+    def log_eps_curves(prefix, list):
         epsilons = [0.1, 0.2, 0.3, 0.4]
-        length = len(learn_list[0])
+        length = len(list[0])
         for t in range(length):
-            log_dict = {"Episode": t}
+            log_dict = {}
             for i, eps in enumerate(epsilons):
-                log_dict[f"{prefix}/learn_e{eps}"] = learn_list[i][t]
-                log_dict[f"{prefix}/loss_e{eps}"] = el_list[i][t]
+                log_dict[f"{prefix}/ε={eps}"] = list[i][t]
             wandb.log(log_dict)
 
-    log_eps_curves("MC", MC_learn, MC_el)
-
-    log_eps_curves("SARSA", SARSA_learn, SARSA_el)
-
-    log_eps_curves("Q-Learning", Q_learn, Q_el)
-
-    wandb.finish()
+    log_eps_curves("MC", MC_learn)
+    log_eps_curves("MC", MC_el)
+    log_eps_curves("SARSA", SARSA_learn)
+    log_eps_curves("SARSA", SARSA_el)
+    log_eps_curves("Q-Learning", Q_learn)
+    log_eps_curves("Q-Learning", Q_el)
 
 if __name__ == "__main__":
     MC_bias     = np.load("./results/Bias_MC.npy")
