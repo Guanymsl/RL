@@ -44,7 +44,7 @@ def evaluation(env, model, render_last, eval_num=100):
             obs, reward, done, _, info = env.step(action)
             env.render()
 
-        
+
     return score, highest
 
 
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # (You don't necessarily need to use PPO for training)
     model_classes = [PPO, A2C, DQN, SAC, TD3]
     model = None
-    
+
     for model_class in model_classes:
         try:
             model = model_class.load(model_path)
@@ -66,10 +66,10 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Failed to load with {model_class.__name__}: {e}")
             continue
-    
+
     if model is None:
         raise ValueError(f"Could not load model from {model_path} with any of the available algorithms")
-    
+
     eval_num = 100
     score, highest = evaluation(env, model, False, eval_num)
 

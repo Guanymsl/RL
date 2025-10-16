@@ -46,13 +46,13 @@ def eval(env, model, eval_episode_num):
         while not done:
             action, _state = model.predict(obs, deterministic=True)
             obs, reward, done, info = env.step(action)
-        
+
         avg_highest += info[0]['highest']
         avg_score   += info[0]['score']
 
     avg_highest /= eval_episode_num
     avg_score /= eval_episode_num
-        
+
     return avg_score, avg_highest
 
 def train(eval_env, model, config):
@@ -100,7 +100,7 @@ def train(eval_env, model, config):
         #     {"avg_highest": avg_highest,
         #      "avg_score": avg_score}
         # )
-        
+
 
         ### Save best model
         if current_best_score < avg_score or current_best_highest < avg_highest:
@@ -115,7 +115,7 @@ def train(eval_env, model, config):
             save_path = config["save_path"]
             model.save(f"{save_path}/best")
         print("-"*60)
-            
+
     total_time = (time.time() - start_time)
     print(f"\n{'='*60}")
     print(f"Training Complete")
@@ -139,8 +139,8 @@ if __name__ == "__main__":
     # Create model from loaded config and train
     # Note: Set verbose to 0 if you don't want info messages
     model = my_config["algorithm"](
-        my_config["policy_network"], 
-        train_env, 
+        my_config["policy_network"],
+        train_env,
         verbose=1,
         tensorboard_log=my_config["run_id"]
     )
