@@ -124,7 +124,7 @@ class My2048Env(gym.Env):
                     [0  , 0  , 0  , 0  ],
                     [0  , 0  , 0  , 0  ]])
             reward += 0
-            
+
         except IllegalMove:
             logging.debug("Illegal move")
             info['illegal_move'] = True
