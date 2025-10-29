@@ -19,9 +19,9 @@ register(
 # Set hyper params (configurations) for training
 my_config = {
     "run_id": "example",
-    "algorithm": PPO,
+    "algorithm": DQN,
     "policy_network": "MlpPolicy",
-    "save_path": "models/sample_model",
+    "save_path": "models/dqn",
     "num_train_envs": 4,
     "epoch_num": 5,
     "timesteps_per_epoch": 100,
@@ -69,10 +69,10 @@ def train(eval_env, model, config):
         model.learn(
             total_timesteps=config["timesteps_per_epoch"],
             reset_num_timesteps=False,
-            # callback=WandbCallback(
-            #     gradient_save_freq=100,
-            #     verbose=2,
-            # ),
+            callback=WandbCallback(
+                gradient_save_freq=100,
+                verbose=2,
+            ),
         )
 
         epoch_duration = time.time() - epoch_start_time
@@ -96,10 +96,10 @@ def train(eval_env, model, config):
         print(f"   - Avg Highest Tile: {avg_highest:.1f}")
 
 
-        # wandb.log(
-        #     {"avg_highest": avg_highest,
-        #      "avg_score": avg_score}
-        # )
+        wandb.log(
+            {"avg_highest": avg_highest,
+             "avg_score": avg_score}
+        )
 
 
         ### Save best model
@@ -125,12 +125,12 @@ def train(eval_env, model, config):
 if __name__ == "__main__":
 
     # Create wandb session (Uncomment to enable wandb logging)
-    # run = wandb.init(
-    #     project="assignment_3",
-    #     config=my_config,
-    #     sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
-    #     id=my_config["run_id"]
-    # )
+    run = wandb.init(
+        project="assignment_3",
+        config=my_config,
+        sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
+        id=my_config["run_id"]
+    )
 
     train_env = SubprocVecEnv([make_env for _ in range(my_config["num_train_envs"])])
 
