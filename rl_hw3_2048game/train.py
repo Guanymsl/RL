@@ -10,6 +10,36 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3 import A2C, DDPG, DQN, PPO, SAC, TD3
 
+import torch
+import torch.nn as nn
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+
+class Custom2048CNN(BaseFeaturesExtractor):
+    def __init__(self, observation_space, features_dim):
+        super().__init__(observation_space, features_dim)
+
+        n_input_channels = observation_space.shape[0]
+
+        self.cnn = nn.Sequential(
+            nn.Conv2d(n_input_channels, 64, kernel_size=2, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=2, stride=1),
+            nn.ReLU(),
+            nn.Flatten()
+        )
+
+        with torch.no_grad():
+            sample = torch.as_tensor(observation_space.sample()[None]).float()
+            n_flatten = self.cnn(sample).shape[1]
+
+        self.linear = nn.Sequential(
+            nn.Linear(n_flatten, features_dim),
+            nn.ReLU()
+        )
+
+    def forward(self, observations: torch.Tensor) -> torch.Tensor:
+        return self.linear(self.cnn(observations))
+
 warnings.filterwarnings("ignore")
 register(
     id='2048-v0',
@@ -18,14 +48,15 @@ register(
 
 # Set hyper params (configurations) for training
 my_config = {
-    "run_id": "example",
+    "run_id": "DQN_CNN_Test",
     "algorithm": DQN,
-    "policy_network": "MlpPolicy",
-    "save_path": "models/dqn",
+    "policy_network": "CnnPolicy",
+    "save_path": "models/dqn_cnn",
     "num_train_envs": 4,
     "epoch_num": 5,
-    "timesteps_per_epoch": 100,
+    "timesteps_per_epoch": 200000,
     "eval_episode_num": 10,
+    "batch_size": 64
 }
 
 def make_env():
@@ -142,6 +173,11 @@ if __name__ == "__main__":
         my_config["policy_network"],
         train_env,
         verbose=1,
-        tensorboard_log=my_config["run_id"]
+        tensorboard_log=my_config["run_id"],
+        batch_size=my_config["batch_size"],
+        policy_kwargs=dict(
+            features_extractor_class=Custom2048CNN,
+            features_extractor_kwargs=dict(features_dim=256)
+        )
     )
     train(eval_env, model, my_config)

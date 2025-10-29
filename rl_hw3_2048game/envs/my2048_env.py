@@ -13,6 +13,8 @@ import logging
 from six import StringIO
 import sys
 
+import time
+
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = itertools.tee(iterable)
@@ -63,10 +65,10 @@ class My2048Env(gym.Env):
         # Suppose that the maximum tile is as if you have powers of 2 across the board.
         layers = self.squares
         self.observation_space = spaces.Box(0, 1, (layers, self.w, self.h), dtype=int)
-        
+
         # TODO: Set negative reward (penalty) for illegal moves (optional)
-        self.set_illegal_move_reward(0.)
-        
+        self.set_illegal_move_reward(-5.0)
+
         self.set_max_tile(None)
 
         # Size of square for rendering
@@ -118,12 +120,20 @@ class My2048Env(gym.Env):
             reward = float(score)
 
             # TODO: Add reward according to weighted states (optional)
+            empty_reward = len(self.empties())
+            empty_c = 0.25
+
             weight = np.array([
-                    [0  , 0  , 0  , 0  ],
-                    [0  , 0  , 0  , 0  ],
-                    [0  , 0  , 0  , 0  ],
-                    [0  , 0  , 0  , 0  ]])
-            reward += 0
+                    [4.0  , 3.0  , 2.0  , 1.0],
+                    [3.0  , 2.0  , 1.0  , 0.0],
+                    [2.0  , 1.0  , 0.0  , 0.0],
+                    [1.0  , 0.0  , 0.0  , 0.0]])
+            corner_reward = np.sum(weight * np.log2(self.Matrix + 1)) / np.sum(weight)
+            corner_c = 5
+
+            #print(f"reward = {reward}, empty_reward = {empty_reward}, corner_reward = {corner_reward}")
+            #time.sleep(3)
+            reward += empty_c * empty_reward + corner_c * corner_reward
 
         except IllegalMove:
             logging.debug("Illegal move")
@@ -131,7 +141,8 @@ class My2048Env(gym.Env):
             reward = self.illegal_move_reward
 
             # TODO: Modify this part for the agent to have a chance to explore other actions (optional)
-            done = True
+            self.foul_count += 1
+            done = self.foul_count >= 20
 
         truncate = False
         info['highest'] = self.highest()
