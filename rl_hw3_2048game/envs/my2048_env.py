@@ -120,20 +120,24 @@ class My2048Env(gym.Env):
             reward = float(score)
 
             # TODO: Add reward according to weighted states (optional)
+            empty_reward_prev = np.sum(pre_state == 0)
             empty_reward = len(self.empties())
+            empty_diff = empty_reward - empty_reward_prev
             empty_c = 0.25
 
             weight = np.array([
-                    [4.0  , 3.0  , 2.0  , 1.0],
-                    [3.0  , 2.0  , 1.0  , 0.0],
+                    [1.0  , 0.0  , 0.0  , 0.0],
                     [2.0  , 1.0  , 0.0  , 0.0],
-                    [1.0  , 0.0  , 0.0  , 0.0]])
+                    [3.0  , 2.0  , 1.0  , 0.0],
+                    [4.0  , 3.0  , 2.0  , 1.0]])
+            corner_reward_prev = np.sum(weight * np.log2(pre_state + 1)) / np.sum(weight)
             corner_reward = np.sum(weight * np.log2(self.Matrix + 1)) / np.sum(weight)
+            corner_diff = corner_reward - corner_reward_prev
             corner_c = 5
 
-            #print(f"reward = {reward}, empty_reward = {empty_reward}, corner_reward = {corner_reward}")
+            #print(f"reward = {reward}, empty_diff = {empty_diff}, corner_diff = {corner_diff}")
             #time.sleep(3)
-            reward += empty_c * empty_reward + corner_c * corner_reward
+            reward += empty_c * empty_diff + corner_c * corner_diff
 
         except IllegalMove:
             logging.debug("Illegal move")

@@ -53,7 +53,7 @@ my_config = {
     "policy_network": "CnnPolicy",
     "save_path": "models/dqn_cnn",
     "num_train_envs": 4,
-    "epoch_num": 5,
+    "epoch_num": 100,
     "timesteps_per_epoch": 200000,
     "eval_episode_num": 10,
     "batch_size": 64
