@@ -48,12 +48,12 @@ register(
 
 # Set hyper params (configurations) for training
 my_config = {
-    "run_id": "DQN_CNN_Test",
+    "run_id": "DQN_CNN_Test_Const",
     "algorithm": DQN,
     "policy_network": "CnnPolicy",
     "save_path": "models/dqn_cnn",
     "num_train_envs": 4,
-    "epoch_num": 100,
+    "epoch_num": 200,
     "timesteps_per_epoch": 200000,
     "eval_episode_num": 10,
     "batch_size": 64
@@ -126,12 +126,10 @@ def train(eval_env, model, config):
         print(f"   - Avg Score: {avg_score:.1f}")
         print(f"   - Avg Highest Tile: {avg_highest:.1f}")
 
-
         wandb.log(
             {"avg_highest": avg_highest,
              "avg_score": avg_score}
         )
-
 
         ### Save best model
         if current_best_score < avg_score or current_best_highest < avg_highest:

@@ -80,6 +80,11 @@ class My2048Env(gym.Env):
         # Reset ready for a game
         self.reset()
 
+        self.weight = np.array([[1.0  , 0.0  , 0.0  , 0.0],
+                                [2.0  , 1.0  , 0.0  , 0.0],
+                                [3.0  , 2.0  , 1.0  , 0.0],
+                                [4.0  , 3.0  , 2.0  , 1.0]])
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -115,28 +120,22 @@ class My2048Env(gym.Env):
             score = float(self.move(action))
             self.score += score
             assert score <= 2**(self.w*self.h)
+            post_state = self.Matrix.copy()
             self.add_tile()
             done = self.isend()
             reward = float(score)
 
             # TODO: Add reward according to weighted states (optional)
-            empty_reward_prev = np.sum(pre_state == 0)
-            empty_reward = len(self.empties())
-            empty_diff = empty_reward - empty_reward_prev
-            empty_c = 0.25
+            #max_tile = np.max(post_state)
 
-            weight = np.array([
-                    [1.0  , 0.0  , 0.0  , 0.0],
-                    [2.0  , 1.0  , 0.0  , 0.0],
-                    [3.0  , 2.0  , 1.0  , 0.0],
-                    [4.0  , 3.0  , 2.0  , 1.0]])
-            corner_reward_prev = np.sum(weight * np.log2(pre_state + 1)) / np.sum(weight)
-            corner_reward = np.sum(weight * np.log2(self.Matrix + 1)) / np.sum(weight)
-            corner_diff = corner_reward - corner_reward_prev
-            corner_c = 5
+            empty_diff = np.sum(post_state == 0) - np.sum(pre_state == 0)
+            empty_c = 2 #* np.log2(max_tile + 1)
 
-            #print(f"reward = {reward}, empty_diff = {empty_diff}, corner_diff = {corner_diff}")
-            #time.sleep(3)
+            corner_diff = np.sum(self.weight * np.log2((post_state + 1) / (pre_state + 1))) / np.sum(self.weight)
+            corner_c = 5 #* np.log2(max_tile + 1)
+
+            # print(f"reward = {reward}, empty_diff = {empty_diff}, corner_diff = {corner_diff}")
+            # time.sleep(3)
             reward += empty_c * empty_diff + corner_c * corner_diff
 
         except IllegalMove:
