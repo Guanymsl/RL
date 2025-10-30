@@ -48,7 +48,7 @@ register(
 
 # Set hyper params (configurations) for training
 my_config = {
-    "run_id": "DQN_CNN_Test_Const",
+    "run_id": "DQN_CNN_Test_Tile",
     "algorithm": DQN,
     "policy_network": "CnnPolicy",
     "save_path": "models/dqn_cnn",
