@@ -126,31 +126,18 @@ class My2048Env(gym.Env):
             reward = float(score)
 
             # TODO: Add reward according to weighted states (optional)
-            max_tile_pre = 0
-            max_tile_post = 0
-            for i in range(4):
-                for j in range(4):
-                    for di, dj in [(1,0), (0,1)]:
-                        if 0 <= i+di < 4 and 0 <= j+dj < 4:
-                            if pre_state[i][j] == pre_state[i+di][j+dj]:
-                                max_tile_pre = max(max_tile_pre, pre_state[i+di][j+dj])
-                            if post_state[i][j] == post_state[i+di][j+dj]:
-                                max_tile_post = max(max_tile_post, post_state[i+di][j+dj])
-            tile_pre = np.log2(max_tile_pre + 1)
-            tile_post = np.log2(max_tile_post + 1)
-            tile_c = 0.25
-
-            # c = np.log2(score + 1)
+            c = np.log2(np.max(post_state) + 1)
 
             empty = np.sum(post_state == 0) - np.sum(pre_state == 0)
-            empty_c = 2 * tile_pre
+            empty_c = c
 
             corner = np.sum(self.weight * np.log2((post_state + 1) / (pre_state + 1))) / np.sum(self.weight)
-            corner_c = 5 * tile_pre
+            corner_c = 3 * c
 
             # print(f"reward = {reward}, tile = {tile}, empty = {empty}, corner = {corner}")
             # time.sleep(3)
-            reward += tile_c * tile_post + empty_c * empty + corner_c * corner
+            reward += empty_c * empty + corner_c * corner
+            reward = np.sign(reward) * np.log2(abs(reward) + 1)
 
         except IllegalMove:
             logging.debug("Illegal move")
