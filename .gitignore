@@ -4,3 +4,4 @@ venv/
 **/wandb/
 rl_hw3_2048game/example/
 **/events.out.*
+**/*.mp4
