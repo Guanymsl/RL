@@ -63,10 +63,10 @@ class My2048Env(gym.Env):
         # Suppose that the maximum tile is as if you have powers of 2 across the board.
         layers = self.squares
         self.observation_space = spaces.Box(0, 1, (layers, self.w, self.h), dtype=int)
-        
+
         # TODO: Set negative reward (penalty) for illegal moves (optional)
-        self.set_illegal_move_reward(0.)
-        
+        self.set_illegal_move_reward(-5.0)
+
         self.set_max_tile(None)
 
         # Size of square for rendering
@@ -77,6 +77,11 @@ class My2048Env(gym.Env):
 
         # Reset ready for a game
         self.reset()
+
+        self.weight = np.array([[1.0  , 0.0  , 0.0  , 0.0],
+                                [2.0  , 1.0  , 0.0  , 0.0],
+                                [3.0  , 2.0  , 1.0  , 0.0],
+                                [4.0  , 3.0  , 2.0  , 1.0]])
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -113,25 +118,31 @@ class My2048Env(gym.Env):
             score = float(self.move(action))
             self.score += score
             assert score <= 2**(self.w*self.h)
+            post_state = self.Matrix.copy()
             self.add_tile()
             done = self.isend()
             reward = float(score)
 
             # TODO: Add reward according to weighted states (optional)
-            weight = np.array([
-                    [0  , 0  , 0  , 0  ],
-                    [0  , 0  , 0  , 0  ],
-                    [0  , 0  , 0  , 0  ],
-                    [0  , 0  , 0  , 0  ]])
-            reward += 0
-            
+            c = np.log2(np.max(post_state) + 1)
+
+            empty = np.sum(post_state == 0) - np.sum(pre_state == 0)
+            empty_c = c
+
+            corner = np.sum(self.weight * np.log2((post_state + 1) / (pre_state + 1))) / np.sum(self.weight)
+            corner_c = 3 * c
+
+            reward += empty_c * empty + corner_c * corner
+            reward = np.sign(reward) * np.log2(abs(reward) + 1)
+
         except IllegalMove:
             logging.debug("Illegal move")
             info['illegal_move'] = True
             reward = self.illegal_move_reward
 
             # TODO: Modify this part for the agent to have a chance to explore other actions (optional)
-            done = True
+            self.foul_count += 1
+            done = self.foul_count >= 20
 
         truncate = False
         info['highest'] = self.highest()

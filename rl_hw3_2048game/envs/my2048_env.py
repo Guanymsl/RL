@@ -6,14 +6,14 @@ from gymnasium.utils import seeding
 
 import numpy as np
 
-from PIL import Image, ImageDraw, ImageFont
+#from PIL import Image, ImageDraw, ImageFont
 
 import itertools
 import logging
 from six import StringIO
-import sys
+#import sys
 
-import time
+#import time
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -134,8 +134,8 @@ class My2048Env(gym.Env):
             corner = np.sum(self.weight * np.log2((post_state + 1) / (pre_state + 1))) / np.sum(self.weight)
             corner_c = 3 * c
 
-            # print(f"reward = {reward}, tile = {tile}, empty = {empty}, corner = {corner}")
-            # time.sleep(3)
+            #print(f"reward = {reward}, tile = {tile}, empty = {empty}, corner = {corner}")
+            #time.sleep(3)
             reward += empty_c * empty + corner_c * corner
             reward = np.sign(reward) * np.log2(abs(reward) + 1)
 
@@ -168,7 +168,7 @@ class My2048Env(gym.Env):
         return stack(self.Matrix), {}
 
     def render(self, mode='human'):
-        outfile = StringIO() if mode == 'ansi' else sys.stdout
+        outfile = StringIO() #if mode == 'ansi' else sys.stdout
         s = 'Score: {}\n'.format(self.score)
         s += 'Highest: {}\n'.format(self.highest())
         npa = np.array(self.Matrix)
